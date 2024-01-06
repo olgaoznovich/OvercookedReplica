@@ -5,42 +5,47 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    public static Player Instance { get; private set; }
+
+    public event EventHandler<OnSelectedCounterChangedEventArgs> OnSelectedCounterChanged;
+    public class OnSelectedCounterChangedEventArgs : EventArgs
+    {
+        public ClearCounter selectedCounter;
+    }
+
     [SerializeField] private float _speed = 7.0f;
     [SerializeField] private GameInput gameInput;
     [SerializeField] private LayerMask countersLayerMask;
+
     private Vector3 lastInteractionDir;
     private bool isWalking;
+    private ClearCounter selectedCounter;
 
     private void Start()
     {
         gameInput.OnInteractAction += GameInputOnOnInteractAction;
     }
 
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Debug.LogError("multiple player instances?!?!@?!");
+        }
+        Instance = this;
+    }
+
     private void GameInputOnOnInteractAction(object sender, EventArgs e)
     {
-        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
-        Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
-
-        if (moveDir != Vector3.zero)
-        {
-            lastInteractionDir = moveDir;
-        }
-
-        float interactDistance = 2f;
-
-        if (Physics.Raycast(transform.position, lastInteractionDir, out RaycastHit raycastHit, interactDistance, countersLayerMask))
-        {
-            if (raycastHit.transform.TryGetComponent(out ClearCounter clearCounter)) // same as getcomponent<ClearCounter> and then do somth if not null
-            {
-                clearCounter.Interact();
-            }
+        if(selectedCounter != null) {
+            selectedCounter.Interact();
         }
     }
 
     private void Update()
     {
         HandleMovement();
-        //HandleInteractions();
+        HandleInteractions();
     }
 
 
@@ -66,8 +71,22 @@ public class Player : MonoBehaviour
             if(raycastHit.transform.TryGetComponent(out ClearCounter clearCounter)) // same as getcomponent<ClearCounter> and then do somth if not null
             {
                 //clearCounter.Interact();
+                if (clearCounter != selectedCounter)
+                {
+                    SetSelectedCounter(clearCounter);
+                }
+            }
+            else
+            {
+                SetSelectedCounter(null);
             }
         }
+        else
+        {
+            SetSelectedCounter(null);
+        }
+
+        Debug.Log(selectedCounter);
     }
 
     private void HandleMovement()
@@ -110,5 +129,12 @@ public class Player : MonoBehaviour
         isWalking = moveDir != Vector3.zero;
         float rotateSpeed = 10f;
         transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * rotateSpeed);
+    }
+
+    private void SetSelectedCounter(ClearCounter selectedCounter)
+    {
+        this.selectedCounter = selectedCounter;
+        OnSelectedCounterChanged?.Invoke(this, new OnSelectedCounterChangedEventArgs()
+                                                            { selectedCounter = selectedCounter });
     }
 }
