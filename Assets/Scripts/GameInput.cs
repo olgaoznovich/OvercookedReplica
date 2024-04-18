@@ -7,6 +7,8 @@ using UnityEngine.InputSystem;
 public class GameInput : MonoBehaviour
 {
     public event EventHandler OnInteractAction;
+    public event EventHandler OnInteractAlternateAction;
+
     private PlayerInputActions playerInputActions;
     private void Awake()
     {
@@ -16,6 +18,12 @@ public class GameInput : MonoBehaviour
         //subscribe (+=) for an alert when Interact action is performed.
         //when performed, the func we subscribed with will be executed.
         playerInputActions.Player.Interact.performed += InteractOnperformed;
+        playerInputActions.Player.InteractAlternative.performed += InteractAlternative_performed;
+    }
+
+    private void InteractAlternative_performed(InputAction.CallbackContext obj)
+    {
+        OnInteractAlternateAction?.Invoke(this, EventArgs.Empty);
     }
 
     //func automatically created upon subscription above
